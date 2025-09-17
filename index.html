@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ordine materiali</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Ordine materiali</h1>
+
+    <section class="header-form">
+      <label class="field">
+        <span>Numero e nome commessa</span>
+        <input id="jobRef" type="text" placeholder="ES. 24123 - SENNA XS per Migros" autocomplete="off" />
+      </label>
+
+      <label class="field">
+        <span>Data richiesta</span>
+        <input id="requestDate" type="date" />
+      </label>
+    </section>
+
+    <section id="lines" class="lines"></section>
+  </main>
+
+  <template id="lineTemplate">
+    <div class="line">
+      <label class="cell">
+        <span>Fornitore</span>
+        <select class="supplier"></select>
+      </label>
+
+      <label class="cell qty">
+        <span>Quantità</span>
+        <div class="stepper">
+          <input class="quantity" type="number" inputmode="numeric" min="0" step="1" value="0" />
+          <button type="button" class="step down" aria-label="Decrementa">−</button>
+          <button type="button" class="step up"   aria-label="Incrementa">+</button>
+        </div>
+      </label>
+
+
+      <label class="cell code">
+        <span>Codice</span>
+        <input class="codeInput" type="text" autocomplete="off" placeholder="Digita codice..." />
+        <ul class="suggestions"></ul>
+      </label>
+
+      <label class="cell desc">
+        <span>Descrizione</span>
+        <input class="descInput" type="text" autocomplete="off" placeholder="Digita descrizione..." />
+        <ul class="suggestions"></ul>
+      </label>
+    </div>
+
+
+  </template>
+
+
+
+ <!--   <section id="lines" class="lines"></section>  -->
+
+      <div class="actions">
+  <button id="exportMail" type="button">Invia email</button>
+</div>
+
+
+
+  <script src="app.js" defer></script>
+</body>
+</html>
