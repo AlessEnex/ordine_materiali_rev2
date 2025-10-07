@@ -1,181 +1,148 @@
-const SUPABASE_URL = 'https://ndpqnoyzfxthclcrvszn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcHFub3l6Znh0aGNsY3J2c3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4MjQ3MDAsImV4cCI6MjA3NTQwMDcwMH0.r4FqmB7_FiQWb_yJsFgjMESoqhTMtUgfGGQ7OpyUTbE';
+// === CONFIGURAZIONE SUPABASE ===
+//const SUPABASE_URL = 'https://ndpqnoyzfxthclcrvszn.supabase.co';
+//const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcHFub3l6Znh0aGNsY3J2c3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM2MzU3MDAsImV4cCI6MjA3NTQwMDcwMH0.r4FqmB7_FiQWb_yJsFgjMESoqhTMtUgfGGQ7OpyUTbE';
 
 let sbClient;
 
+// === AVVIO ===
 document.addEventListener('DOMContentLoaded', async () => {
   sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: {
-      fetch: (url, options = {}) => {
-        options.headers = {
-          ...(options.headers || {}),
+      fetch: (url, opt = {}) => {
+        opt.headers = {
+          ...(opt.headers || {}),
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
         };
-        return fetch(url, options);
+        return fetch(url, opt);
       },
     },
   });
 
-  await loadOrders();
+  const authBox = document.getElementById('authBox');
+  const btnLogin = document.getElementById('btnLogin');
+  const btnLogout = document.getElementById('btnLogout');
+  const authMsg = document.getElementById('authMsg');
+  const filters = document.querySelector('.filters');
+  const tableContainer = document.getElementById('tableContainer');
+  const btnFilter = document.getElementById('btnFilter');
+  const jobRefInput = document.getElementById('filterJobRef');
+  const jobYearInput = document.getElementById('filterJobYear');
+  const dateInput = document.getElementById('filterDate');
+
+  const setUI = (logged) => {
+    authBox.style.display = logged ? 'none' : 'block';
+    btnLogout.style.display = logged ? 'inline-block' : 'none';
+    filters.style.display = logged ? 'flex' : 'none';
+    tableContainer.style.display = logged ? 'block' : 'none';
+  };
+
+  // === CONTROLLO SESSIONE INIZIALE ===
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (session) {
+    setUI(true);
+    await loadOrders();
+  } else {
+    setUI(false);
+  }
+
+  // === LOGIN ===
+  btnLogin?.addEventListener('click', async () => {
+    authMsg.textContent = '';
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) {
+      authMsg.textContent = 'Inserisci email e password.';
+      return;
+    }
+
+    const { error } = await sbClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      authMsg.textContent = 'Accesso negato. Controlla le credenziali.';
+      return;
+    }
+
+    setUI(true);
+    await loadOrders();
+  });
+
+  // === LOGOUT ===
+  btnLogout?.addEventListener('click', async () => {
+    await sbClient.auth.signOut();
+    setUI(false);
+    tableContainer.innerHTML = 'Accedi per visualizzare i dati.';
+  });
 
   // === FILTRI ===
-  document.getElementById('btnFilter').addEventListener('click', async () => {
-    console.log('Filtro cliccato'); // per verifica
-    const job = document.getElementById('filterJob').value.trim().toLowerCase();
-    const year = document.getElementById('filterYear').value;
-    const date = document.getElementById('filterDate').value || null;
-    const code = document.getElementById('filterCode').value.trim().toLowerCase();
-    await loadOrders(job, year, date, code);
+  btnFilter?.addEventListener('click', async () => {
+    const jobRef = jobRefInput.value.trim() || null;
+    const jobYear = jobYearInput.value ? parseInt(jobYearInput.value) : null;
+    const date = dateInput.value || null;
+    console.log('Filtro cliccato\nFiltri ricevuti:', jobRef, jobYear, date);
+    await loadOrders(jobRef, jobYear, date);
   });
-});
 
-
-async function loadOrders(jobFilter = '', yearFilter = '', dateFilter = null, codeFilter = '') {
-  const container = document.getElementById('tableContainer');
-  container.textContent = 'Caricamento dati...';
-  console.log('Filtri ricevuti:', jobFilter, yearFilter, dateFilter, codeFilter);
-
-  try {
+  // === FUNZIONE CARICAMENTO ORDINI ===
+  async function loadOrders(jobRef = null, jobYear = null, date = null) {
     let query = sbClient
       .from('material_order_lines')
       .select(`
         id,
-        order_id,
         supplier_name,
         code,
         description,
         qty,
         material_orders!inner(job_ref, job_year, request_date)
       `)
-      .order('job_year', { referencedTable: 'material_orders', ascending: false })
-      .order('job_ref', { referencedTable: 'material_orders', ascending: true });
+      .order('id', { ascending: false });
 
-    // Filtri su tabella collegata => usa .filter()
-    if (jobFilter)  query = query.filter('material_orders.job_ref', 'ilike', `%${jobFilter}%`);
-    if (yearFilter) query = query.filter('material_orders.job_year', 'eq', parseInt(yearFilter, 10));
-    if (dateFilter) query = query.filter('material_orders.request_date', 'gte', dateFilter);
-
-    // Filtro su colonna locale
-    if (codeFilter) query = query.ilike('code', `%${codeFilter}%`);
+    if (jobRef) query = query.eq('material_orders.job_ref', jobRef);
+    if (jobYear) query = query.eq('material_orders.job_year', jobYear);
+    if (date) query = query.eq('material_orders.request_date', date);
 
     const { data, error } = await query;
 
-    if (error) throw error;
-    console.log('Righe trovate:', data?.length ?? 0);
-
-    if (!data || !data.length) {
-      container.textContent = 'Nessun ordine trovato.';
+    if (error) {
+      console.error('Errore caricamento dati:', error);
+      tableContainer.innerHTML = `<p style="color:#f66;">Errore nel caricamento dati.</p>`;
       return;
     }
 
-    renderTable(container, data);
-  } catch (err) {
-    console.error(err);
-    container.textContent = 'Errore nel caricamento dati.';
-  }
-}
+    if (!data || !data.length) {
+      tableContainer.innerHTML = `<p style="color:#888;">Nessun dato trovato.</p>`;
+      return;
+    }
 
-
-function renderTable(container, rows) {
-  const table = document.createElement('table');
-  const thead = document.createElement('thead');
-  thead.innerHTML = `
-    <tr>
-      <th>Anno</th>
-      <th>Commessa</th>
-      <th>Data richiesta</th>
-      <th>Fornitore</th>
-      <th>Codice</th>
-      <th>Descrizione</th>
-      <th>Quantità</th>
-      <th></th>
-    </tr>`;
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.material_orders.job_year || ''}</td>
-      <td>${r.material_orders.job_ref}</td>
-      <td>${r.material_orders.request_date || ''}</td>
-      <td>${r.supplier_name || ''}</td>
-      <td>${r.code || ''}</td>
-      <td>${r.description || ''}</td>
-      <td>${r.qty}</td>
-      <td class="actions-cell">
-        <button class="delete-row" data-id="${r.id}" title="Elimina riga">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-            <path d="M10 11v6"></path>
-            <path d="M14 11v6"></path>
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-          </svg>
-        </button>
-      </td>
+    // Crea tabella HTML
+    const html = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Commessa</th>
+            <th>Anno</th>
+            <th>Data richiesta</th>
+            <th>Fornitore</th>
+            <th>Codice</th>
+            <th>Descrizione</th>
+            <th>Q.tà</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(row => `
+            <tr>
+              <td>${row.material_orders.job_ref}</td>
+              <td>${row.material_orders.job_year}</td>
+              <td>${row.material_orders.request_date || '-'}</td>
+              <td>${row.supplier_name || '-'}</td>
+              <td>${row.code || '-'}</td>
+              <td>${row.description || '-'}</td>
+              <td>${row.qty || 0}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
     `;
-    tbody.appendChild(tr);
-  });
 
-  table.appendChild(tbody);
-  container.innerHTML = '';
-  container.appendChild(table);
-
-  // Gestione click su "Elimina"
-  container.querySelectorAll('.delete-row').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.dataset.id;
-      const confirmed = confirm('Vuoi eliminare questa riga?');
-      if (!confirmed) return;
-
-      try {
-        const { error } = await sbClient
-          .from('material_order_lines')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-        btn.closest('tr').remove();
-      } catch (err) {
-        console.error('Errore eliminazione:', err);
-        alert('Errore durante l’eliminazione della riga.');
-      }
-    });
-  });
-}
-
-
-
-// === ESPORTAZIONE CSV ===
-document.getElementById('btnExport').addEventListener('click', () => {
-  const table = document.querySelector('#tableContainer table');
-  if (!table) {
-    alert('Nessun dato da esportare.');
-    return;
+    tableContainer.innerHTML = html;
   }
-
-  let csv = [];
-  const rows = table.querySelectorAll('tr');
-
-  rows.forEach((row, i) => {
-    const cols = Array.from(row.querySelectorAll('th, td')).map(cell =>
-      `"${cell.innerText.replace(/"/g, '""')}"`
-    );
-    csv.push(cols.join(';'));
-  });
-
-  // Aggiunge BOM per compatibilità Excel
-  const blob = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `ordini_materiali_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 });

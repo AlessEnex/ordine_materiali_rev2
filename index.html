@@ -17,6 +17,17 @@
   <main class="container">
       
 
+      <section id="loginBox" class="auth-box">
+      <h2>Accesso</h2>
+      <label>
+        <span>Email</span>
+        <input id="loginEmail" type="email" placeholder="nome.cognome@azienda.it" autocomplete="username" />
+      </label>
+      <button id="btnMagicLogin" type="button">Invia link di accesso</button>
+      <p id="loginMsg" class="auth-msg"></p>
+      </section>
+
+
     <h1>Ordine materiali</h1>
 
     <section class="header-form">
@@ -98,6 +109,7 @@
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="login.js" defer></script>
 <script src="app.js" defer></script>
 <script src="supabase-save.js" defer></script>
 

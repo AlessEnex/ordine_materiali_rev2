@@ -1,56 +1,27 @@
 // ===== supabase-save.js =====
 
-// === CONFIGURAZIONE ===
-const SUPABASE_URL = 'https://ndpqnoyzfxthclcrvszn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcHFub3l6Znh0aGNsY3J2c3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4MjQ3MDAsImV4cCI6MjA3NTQwMDcwMH0.r4FqmB7_FiQWb_yJsFgjMESoqhTMtUgfGGQ7OpyUTbE';
+// Non creare un nuovo client qui.
+// Usiamo quello globale creato in login.js: window.sbClient
 
-let sbClient = null;
-
-// === INIZIALIZZAZIONE ===
 document.addEventListener('DOMContentLoaded', () => {
-  if (!window.supabase) {
-    console.error('Libreria Supabase non trovata');
+  if (!window.sbClient) {
+    console.error('Supabase client mancante: assicurati che login.js sia caricato prima.');
     return;
   }
-
-  // Creo il client con headers forzati
-  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    db: { schema: 'public' },
-    global: {
-      fetch: (url, options = {}) => {
-        options.headers = {
-          ...(options.headers || {}),
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        };
-        return fetch(url, options);
-      },
-    },
-  });
-
   const btnSave = document.getElementById('saveSupabase');
   if (btnSave) btnSave.addEventListener('click', onSaveClick);
 });
 
-// === EVENTO CLICK ===
-// PRIMA: c'era una versione che faceva .insert(...).select('id') e falliva con RLS
-// DOPO: versione robusta con controllo duplicati + insert ordine + select separata + insert righe
-
+// === CLICK SALVA ===
 async function onSaveClick() {
+  const sbClient = window.sbClient; // alias locale
   const payload = collectOrderPayload();
 
   // Validazioni
-  if (!payload.jobRef) {
-    alert('Inserisci il numero commessa prima di salvare.');
-    return;
-  }
-  if (!payload.lines.length) {
-    alert('Non ci sono righe materiali da salvare.');
-    return;
-  }
+  if (!payload.jobRef) { alert('Inserisci il numero commessa prima di salvare.'); return; }
+  if (!payload.lines.length) { alert('Non ci sono righe materiali da salvare.'); return; }
 
-  // === 1) Controllo righe già presenti per stessa commessa/anno ===
+  // 1) Controllo righe già presenti per stessa commessa/anno
   try {
     const { data: existing, error: checkErr } = await sbClient
       .from('material_order_lines')
@@ -67,8 +38,6 @@ async function onSaveClick() {
 
     if (checkErr) throw checkErr;
 
-    console.log('DEBUG existing lines count:', existing?.length || 0, existing);
-
     if (existing && existing.length > 0) {
       const preview = existing.map(r =>
         `• ${r.supplier_name || ''} - ${r.code || ''} (${r.qty}) ${r.description || ''}`
@@ -76,14 +45,9 @@ async function onSaveClick() {
 
       const msg =
         `Sono già presenti ${existing.length} righe per la commessa ${payload.jobRef} (${payload.jobYear}).\n\n` +
-        `${preview}\n\n` +
-        `Vuoi aggiungere comunque le nuove righe?`;
-
+        `${preview}\n\nVuoi aggiungere comunque le nuove righe?`;
       const proceed = confirm(msg);
-      if (!proceed) {
-        alert('Operazione annullata. Nessun dato è stato modificato.');
-        return;
-      }
+      if (!proceed) { alert('Operazione annullata. Nessun dato modificato.'); return; }
     }
   } catch (err) {
     console.error('DEBUG check error:', err);
@@ -91,7 +55,7 @@ async function onSaveClick() {
     return;
   }
 
-  // === 2) Inserimento ORDINE (senza .select per evitare problemi RLS) ===
+  // 2) Inserimento ordine (senza .select)
   try {
     const { error: orderErr } = await sbClient
       .from('material_orders')
@@ -100,11 +64,9 @@ async function onSaveClick() {
         job_year: payload.jobYear,
         request_date: payload.requestDate || null,
       });
-
-    console.log('DEBUG order insert error:', orderErr || 'none');
     if (orderErr) throw orderErr;
 
-    // === 3) Recupero ID dell'ultimo ordine creato (stessa commessa/anno) ===
+    // 3) Recupero ID ordine appena creato (più recente per stessa commessa/anno)
     const { data: latest, error: selErr } = await sbClient
       .from('material_orders')
       .select('id')
@@ -112,14 +74,12 @@ async function onSaveClick() {
       .eq('job_year', payload.jobYear)
       .order('created_at', { ascending: false })
       .limit(1);
-
-    console.log('DEBUG selected order row:', latest, 'selErr:', selErr || 'none');
     if (selErr) throw selErr;
     if (!latest || !latest.length) throw new Error('Nessun ID trovato per l’ordine');
 
     const orderId = latest[0].id;
 
-    // === 4) Inserimento RIGHE ===
+    // 4) Inserimento righe materiali
     const rows = payload.lines.map(l => ({
       order_id: orderId,
       supplier_id: l.supplier_id || null,
@@ -128,13 +88,8 @@ async function onSaveClick() {
       description: l.description || null,
       qty: l.qty,
     }));
-    console.log('DEBUG lines to insert:', rows.length, rows);
 
-    const { error: lineErr } = await sbClient
-      .from('material_order_lines')
-      .insert(rows);
-
-    console.log('DEBUG lines insert error:', lineErr || 'none');
+    const { error: lineErr } = await sbClient.from('material_order_lines').insert(rows);
     if (lineErr) throw lineErr;
 
     alert('✅ Dati salvati correttamente su Supabase.');
@@ -143,8 +98,6 @@ async function onSaveClick() {
     alert('Errore durante il salvataggio su Supabase.');
   }
 }
-
-
 
 // === RACCOLTA DATI DAL DOM ===
 function collectOrderPayload() {
@@ -171,8 +124,7 @@ function collectOrderPayload() {
   return { jobRef, jobYear, requestDate, lines };
 }
 
-
-// === MERGE RIGHE DUPLICATE ===
+// === MERGE RIGHE DUPLICATE (se ti serve in futuro) ===
 function mergeLines(lines) {
   const acc = {};
   for (const r of lines) {
