@@ -17,6 +17,20 @@
       </label>
 
       <label class="field">
+      <span>Anno commessa</span>
+      <select id="jobYear">
+        <option value="2024">2024</option>
+        <option value="2025" selected>2025</option>
+        <option value="2026">2026</option>
+        <option value="2027">2027</option>
+        <option value="2028">2028</option>
+        <option value="2029">2029</option>
+        <option value="2030">2030</option>
+      </select>
+    </label>
+
+
+      <label class="field">
         <span>Data richiesta</span>
         <input id="requestDate" type="date" />
       </label>
@@ -62,12 +76,16 @@
 
  <!--   <section id="lines" class="lines"></section>  -->
 
-      <div class="actions">
+<div class="actions">
+  <button id="saveSupabase" type="button">Salva su Supabase</button>
   <button id="exportMail" type="button">Invia email</button>
 </div>
 
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js" defer></script>
+<script src="supabase-save.js" defer></script>
 
 
-  <script src="app.js" defer></script>
+
 </body>
 </html>

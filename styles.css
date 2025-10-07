@@ -224,3 +224,56 @@ input[type="date"]::-webkit-calendar-picker-indicator{
 .actions button:active{
   transform: translateY(1px);
 }
+
+
+/* Stile per il selettore dell'anno */
+.field select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: #0d0d0f;
+  color: #eee;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.field select:hover {
+  border-color: #007aff;
+}
+
+.field select:focus {
+  outline: none;
+  border-color: #339dff;
+  background: #141418;
+}
+
+/* Piccola freccia elegante */
+.field select::-ms-expand {
+  display: none;
+}
+.field select::after {
+  content: '▾';
+}
+
+.field {
+  position: relative;
+}
+.field select {
+  padding-right: 2rem;
+}
+.field::after {
+  content: '';
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  width: 0.6rem;
+  height: 0.6rem;
+  background: url("data:image/svg+xml;utf8,<svg fill='%23aaa' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M7 10l5 5 5-5z'/></svg>") no-repeat center;
+  background-size: contain;
+  transform: translateY(-50%);
+  pointer-events: none;
+}

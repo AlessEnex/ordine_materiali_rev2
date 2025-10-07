@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visualizza Ordini Materiali</title>
+  <link rel="stylesheet" href="visualizza.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Ordini Materiali</h1>
+
+    <section class="filters">
+        <label>
+            <span>Commessa</span>
+            <input id="filterJob" type="text" placeholder="24123 o parte del nome" autocomplete="off">
+        </label>
+
+        <label>
+            <span>Anno</span>
+            <select id="filterYear">
+            <option value="">Tutti</option>
+            <option value="2024">2024</option>
+            <option value="2025" selected>2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+            <option value="2029">2029</option>
+            <option value="2030">2030</option>
+            </select>
+        </label>
+
+        <label>
+            <span>Data richiesta dopo</span>
+            <input id="filterDate" type="date">
+        </label>
+
+        <label>
+            <span>Codice articolo</span>
+            <input id="filterCode" type="text" placeholder="es. 032L1223" autocomplete="off">
+        </label>
+
+        <button id="btnFilter" type="button">Filtra</button>
+        </section>
+
+
+
+    <div id="tableContainer" class="table-container">Caricamento...</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="visualizza.js" defer></script>
+</body>
+</html>
