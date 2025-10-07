@@ -147,3 +147,35 @@ function renderTable(container, rows) {
   });
 }
 
+
+
+// === ESPORTAZIONE CSV ===
+document.getElementById('btnExport').addEventListener('click', () => {
+  const table = document.querySelector('#tableContainer table');
+  if (!table) {
+    alert('Nessun dato da esportare.');
+    return;
+  }
+
+  let csv = [];
+  const rows = table.querySelectorAll('tr');
+
+  rows.forEach((row, i) => {
+    const cols = Array.from(row.querySelectorAll('th, td')).map(cell =>
+      `"${cell.innerText.replace(/"/g, '""')}"`
+    );
+    csv.push(cols.join(';'));
+  });
+
+  // Aggiunge BOM per compatibilità Excel
+  const blob = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ordini_materiali_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});

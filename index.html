@@ -7,14 +7,30 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+
+<header class="topbar">
+  <button id="openVisualizza" type="button" class="secondary">Apri visualizzazione</button>
+</header>
+
+
+
   <main class="container">
+      
+
     <h1>Ordine materiali</h1>
 
     <section class="header-form">
+
       <label class="field">
         <span>Numero e nome commessa</span>
-        <input id="jobRef" type="text" placeholder="ES. 24123 - SENNA XS per Migros" autocomplete="off" />
+        <input id="jobRef" type="text" placeholder="Solo numero commessa" autocomplete="off" />
       </label>
+
+      <label class="field">
+      <span>Nome commessa</span>
+      <input id="jobName" type="text" placeholder="es. SENNA XS per Migros" autocomplete="off" />
+      </label>
+
 
       <label class="field">
       <span>Anno commessa</span>
@@ -77,8 +93,8 @@
  <!--   <section id="lines" class="lines"></section>  -->
 
 <div class="actions">
-  <button id="saveSupabase" type="button">Salva su Supabase</button>
-  <button id="exportMail" type="button">Invia email</button>
+  <button id="saveSupabase" type="button">Salva in Visualizzazione</button>
+ <button id="exportMail" type="button">Invia email</button>
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

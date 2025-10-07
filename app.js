@@ -60,6 +60,31 @@ function initUI(){
   addLine(linesEl); // prima riga vuota
 }
 
+// === RESTRIZIONE NUMERO COMMESSA ===
+document.addEventListener('DOMContentLoaded', () => {
+  const jobRefInput = document.getElementById('jobRef');
+  if (!jobRefInput) return;
+
+  jobRefInput.addEventListener('input', (e) => {
+    // Permetti solo cifre
+    const clean = e.target.value.replace(/\D/g, '');
+    e.target.value = clean;
+
+    // Se non è un numero valido, svuota
+    const num = parseInt(clean, 10);
+    if (isNaN(num) || num < 10 || num > 999) {
+      e.target.setCustomValidity('Inserisci un numero compreso tra 10 e 999');
+    } else {
+      e.target.setCustomValidity('');
+    }
+  });
+
+  jobRefInput.addEventListener('keypress', (e) => {
+    // Blocca caratteri non numerici
+    if (!/[0-9]/.test(e.key)) e.preventDefault();
+  });
+});
+
 // Crea una nuova riga
 function addLine(container){
   const tpl = document.getElementById('lineTemplate');
@@ -235,12 +260,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function exportToMail(){
+function exportToMail() {
   const jobRef = document.getElementById('jobRef').value.trim();
+  const jobName = document.getElementById('jobName').value.trim();
   const reqDate = document.getElementById('requestDate').value;
 
   let body = [];
-  body.push(`Numero/Nome commessa: ${jobRef || "-"}`);
+  body.push(`Numero commessa: ${jobRef || "-"}`);
+  body.push(`Nome commessa: ${jobName || "-"}`);
   body.push(`Data richiesta: ${reqDate || "-"}`);
   body.push("");
   body.push("Materiali:");
@@ -261,3 +288,14 @@ function exportToMail(){
 
   window.location.href = `mailto:acquisti@enex.it?subject=${subject}&body=${mailBody}`;
 }
+
+
+// === PULSANTE APRI VISUALIZZA ===
+document.addEventListener('DOMContentLoaded', () => {
+  const btnVisualizza = document.getElementById('openVisualizza');
+  if (btnVisualizza) {
+    btnVisualizza.addEventListener('click', () => {
+      window.location.href = 'visualizza.html';
+    });
+  }
+});
