@@ -1,7 +1,6 @@
 // ===== supabase-save.js =====
 
-// Non creare un nuovo client qui.
-// Usiamo quello globale creato in login.js: window.sbClient
+// Usa il client globale creato in login.js: window.sbClient
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!window.sbClient) {
@@ -14,12 +13,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // === CLICK SALVA ===
 async function onSaveClick() {
-  const sbClient = window.sbClient; // alias locale
+  const btnSave = document.getElementById('saveSupabase');
+  const originalText = btnSave.textContent;
+  
+  // Disabilita bottone e mostra loading
+  btnSave.disabled = true;
+  btnSave.textContent = 'Salvataggio in corso...';
+  
+  const sbClient = window.sbClient;
   const payload = collectOrderPayload();
 
   // Validazioni
-  if (!payload.jobRef) { alert('Inserisci il numero commessa prima di salvare.'); return; }
-  if (!payload.lines.length) { alert('Non ci sono righe materiali da salvare.'); return; }
+  if (!payload.jobRef) {
+    Toast.error('Inserisci il numero commessa prima di salvare');
+    btnSave.textContent = originalText;
+    btnSave.disabled = false;
+    return;
+  }
+  
+  if (!payload.lines.length) {
+    Toast.warning('Non ci sono righe materiali da salvare');
+    btnSave.textContent = originalText;
+    btnSave.disabled = false;
+    return;
+  }
 
   // 1) Controllo righe già presenti per stessa commessa/anno
   try {
@@ -46,40 +63,44 @@ async function onSaveClick() {
       const msg =
         `Sono già presenti ${existing.length} righe per la commessa ${payload.jobRef} (${payload.jobYear}).\n\n` +
         `${preview}\n\nVuoi aggiungere comunque le nuove righe?`;
-      const proceed = confirm(msg);
-      if (!proceed) { alert('Operazione annullata. Nessun dato modificato.'); return; }
+      
+      const proceed = await Modal.confirm(msg, 'Righe già presenti', {
+        confirmText: 'Aggiungi comunque',
+        cancelText: 'Annulla'
+      });
+      
+      if (!proceed) {
+        Toast.warning('Operazione annullata');
+        btnSave.textContent = originalText;
+        btnSave.disabled = false;
+        return;
+      }
     }
   } catch (err) {
     console.error('DEBUG check error:', err);
-    alert('Errore durante il controllo della commessa.');
+    Toast.error('Errore durante il controllo della commessa');
+    btnSave.textContent = originalText;
+    btnSave.disabled = false;
     return;
   }
 
-  // 2) Inserimento ordine (senza .select)
+  // 2) Inserimento ordine E recupero ID immediato
   try {
-    const { error: orderErr } = await sbClient
+    const { data: newOrder, error: orderErr } = await sbClient
       .from('material_orders')
       .insert({
         job_ref: payload.jobRef,
         job_year: payload.jobYear,
         request_date: payload.requestDate || null,
-      });
+      })
+      .select('id')
+      .single();
+      
     if (orderErr) throw orderErr;
 
-    // 3) Recupero ID ordine appena creato (più recente per stessa commessa/anno)
-    const { data: latest, error: selErr } = await sbClient
-      .from('material_orders')
-      .select('id')
-      .eq('job_ref', payload.jobRef)
-      .eq('job_year', payload.jobYear)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    if (selErr) throw selErr;
-    if (!latest || !latest.length) throw new Error('Nessun ID trovato per l’ordine');
+    const orderId = newOrder.id;
 
-    const orderId = latest[0].id;
-
-    // 4) Inserimento righe materiali
+    // 3) Inserimento righe materiali
     const rows = payload.lines.map(l => ({
       order_id: orderId,
       supplier_id: l.supplier_id || null,
@@ -92,10 +113,27 @@ async function onSaveClick() {
     const { error: lineErr } = await sbClient.from('material_order_lines').insert(rows);
     if (lineErr) throw lineErr;
 
-    alert('✅ Dati salvati correttamente su Supabase.');
+    Toast.success('Dati salvati correttamente');
+    window.__lastSaveOk = true;
+    
+    // Abilita bottone email
+    const mailBtn = document.getElementById('exportMail');
+    if (mailBtn) { 
+      mailBtn.disabled = false; 
+      mailBtn.title = ''; 
+    }
+    
+    // Ripristina bottone salva
+    btnSave.textContent = originalText;
+    btnSave.disabled = false;
+
   } catch (err) {
     console.error('DEBUG save error:', err);
-    alert('Errore durante il salvataggio su Supabase.');
+    Toast.error('Errore durante il salvataggio');
+    
+    // Ripristina bottone anche in caso di errore
+    btnSave.textContent = originalText;
+    btnSave.disabled = false;
   }
 }
 

@@ -1,148 +1,190 @@
-// === CONFIGURAZIONE SUPABASE ===
-//const SUPABASE_URL = 'https://ndpqnoyzfxthclcrvszn.supabase.co';
-//const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kcHFub3l6Znh0aGNsY3J2c3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM2MzU3MDAsImV4cCI6MjA3NTQwMDcwMH0.r4FqmB7_FiQWb_yJsFgjMESoqhTMtUgfGGQ7OpyUTbE';
+// ===== visualizza.js =====
+// Usa il client globale creato in login.js: window.sbClient
 
-let sbClient;
-
-// === AVVIO ===
 document.addEventListener('DOMContentLoaded', async () => {
-  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      fetch: (url, opt = {}) => {
-        opt.headers = {
-          ...(opt.headers || {}),
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        };
-        return fetch(url, opt);
-      },
-    },
-  });
-
-  const authBox = document.getElementById('authBox');
-  const btnLogin = document.getElementById('btnLogin');
-  const btnLogout = document.getElementById('btnLogout');
-  const authMsg = document.getElementById('authMsg');
-  const filters = document.querySelector('.filters');
-  const tableContainer = document.getElementById('tableContainer');
-  const btnFilter = document.getElementById('btnFilter');
-  const jobRefInput = document.getElementById('filterJobRef');
-  const jobYearInput = document.getElementById('filterJobYear');
-  const dateInput = document.getElementById('filterDate');
-
-  const setUI = (logged) => {
-    authBox.style.display = logged ? 'none' : 'block';
-    btnLogout.style.display = logged ? 'inline-block' : 'none';
-    filters.style.display = logged ? 'flex' : 'none';
-    tableContainer.style.display = logged ? 'block' : 'none';
-  };
-
-  // === CONTROLLO SESSIONE INIZIALE ===
-  const { data: { session } } = await sbClient.auth.getSession();
-  if (session) {
-    setUI(true);
-    await loadOrders();
-  } else {
-    setUI(false);
+  if (!window.sbClient) {
+    console.error('Supabase client mancante (carica prima login.js)');
+    return;
   }
 
-  // === LOGIN ===
-  btnLogin?.addEventListener('click', async () => {
-    authMsg.textContent = '';
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    if (!email || !password) {
-      authMsg.textContent = 'Inserisci email e password.';
-      return;
-    }
+  // Sessione: se non loggato torna alla pagina di accesso
+  const { data: { session } } = await window.sbClient.auth.getSession();
+  if (!session) {
+    window.location.href = 'index.html';
+    return;
+  }
 
-    const { error } = await sbClient.auth.signInWithPassword({ email, password });
-    if (error) {
-      authMsg.textContent = 'Accesso negato. Controlla le credenziali.';
-      return;
-    }
+  // Pulisci eventuale box login presente in visualizza.html
+  const authBox   = document.getElementById('authBox');
+  const btnLogout = document.getElementById('btnLogout');
+  const filters   = document.querySelector('.filters');
+  const tableCont = document.getElementById('tableContainer');
 
-    setUI(true);
-    await loadOrders();
+  if (authBox)   authBox.style.display = 'none';
+  if (filters)   filters.style.display = 'flex';
+  if (btnLogout) btnLogout.style.display = 'inline-block';
+
+  // Logout
+  btnLogout?.addEventListener('click', () => {
+    window.location.href = 'index.html';
   });
 
-  // === LOGOUT ===
-  btnLogout?.addEventListener('click', async () => {
-    await sbClient.auth.signOut();
-    setUI(false);
-    tableContainer.innerHTML = 'Accedi per visualizzare i dati.';
-  });
+  // Filtri (compatibile con id vecchi o nuovi)
+  const btnFilter   = document.getElementById('btnFilter');
+  const jobEl       = document.getElementById('filterJob')     || document.getElementById('filterJobRef');
+  const yearEl      = document.getElementById('filterYear')    || document.getElementById('filterJobYear');
+  const dateEl      = document.getElementById('filterDate');
+  const codeEl      = document.getElementById('filterCode');
 
-  // === FILTRI ===
   btnFilter?.addEventListener('click', async () => {
-    const jobRef = jobRefInput.value.trim() || null;
-    const jobYear = jobYearInput.value ? parseInt(jobYearInput.value) : null;
-    const date = dateInput.value || null;
-    console.log('Filtro cliccato\nFiltri ricevuti:', jobRef, jobYear, date);
-    await loadOrders(jobRef, jobYear, date);
+    const job  = (jobEl?.value || '').trim();
+    const year = yearEl?.value ? parseInt(yearEl.value, 10) : null;
+    const date = dateEl?.value || null;
+    const code = (codeEl?.value || '').trim();
+
+    await loadOrders(job || null, year, date, code || null);
   });
 
-  // === FUNZIONE CARICAMENTO ORDINI ===
-  async function loadOrders(jobRef = null, jobYear = null, date = null) {
-    let query = sbClient
-      .from('material_order_lines')
-      .select(`
-        id,
-        supplier_name,
-        code,
-        description,
-        qty,
-        material_orders!inner(job_ref, job_year, request_date)
-      `)
-      .order('id', { ascending: false });
+  // Caricamento iniziale
+  await loadOrders();
 
-    if (jobRef) query = query.eq('material_orders.job_ref', jobRef);
-    if (jobYear) query = query.eq('material_orders.job_year', jobYear);
-    if (date) query = query.eq('material_orders.request_date', date);
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Errore caricamento dati:', error);
-      tableContainer.innerHTML = `<p style="color:#f66;">Errore nel caricamento dati.</p>`;
+  // Esportazione CSV della vista corrente
+  document.getElementById('btnExport')?.addEventListener('click', () => {
+    const table = document.querySelector('#tableContainer table');
+    if (!table) { 
+      Toast.warning('Nessun dato da esportare');
       return;
     }
 
-    if (!data || !data.length) {
-      tableContainer.innerHTML = `<p style="color:#888;">Nessun dato trovato.</p>`;
-      return;
-    }
+    const rows = table.querySelectorAll('tr');
+    const csv = Array.from(rows).map(row => {
+      const cols = Array.from(row.querySelectorAll('th, td'))
+        .map(c => `"${c.innerText.replace(/"/g, '""')}"`);
+      return cols.join(';');
+    });
 
-    // Crea tabella HTML
-    const html = `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Commessa</th>
-            <th>Anno</th>
-            <th>Data richiesta</th>
-            <th>Fornitore</th>
-            <th>Codice</th>
-            <th>Descrizione</th>
-            <th>Q.tà</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map(row => `
+    const blob = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ordini_materiali_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    Toast.success('File CSV scaricato');
+  });
+
+  // Funzione di caricamento con filtri
+  async function loadOrders(jobRef = null, jobYear = null, date = null, code = null) {
+    tableCont.textContent = 'Caricamento dati...';
+
+    try {
+      let query = window.sbClient
+        .from('material_order_lines')
+        .select(`
+          id,
+          supplier_name,
+          code,
+          description,
+          qty,
+          material_orders!inner(job_ref, job_year, request_date)
+        `)
+        .order('job_year', { referencedTable: 'material_orders', ascending: false })
+        .order('job_ref',  { referencedTable: 'material_orders', ascending: true });
+
+      if (jobRef)  query = query.filter('material_orders.job_ref', 'ilike', `%${jobRef}%`);
+      if (jobYear) query = query.filter('material_orders.job_year', 'eq', jobYear);
+      if (date)    query = query.filter('material_orders.request_date', 'gte', date);
+      if (code)    query = query.ilike('code', `%${code}%`);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (!data?.length) { tableCont.textContent = 'Nessun ordine trovato.'; return; }
+
+      const html = `
+        <table class="data-table">
+          <thead>
             <tr>
-              <td>${row.material_orders.job_ref}</td>
-              <td>${row.material_orders.job_year}</td>
-              <td>${row.material_orders.request_date || '-'}</td>
-              <td>${row.supplier_name || '-'}</td>
-              <td>${row.code || '-'}</td>
-              <td>${row.description || '-'}</td>
-              <td>${row.qty || 0}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    `;
+              <th>Commessa</th>
+              <th>Anno</th>
+              <th>Data richiesta</th>
+              <th>Fornitore</th>
+              <th>Codice</th>
+              <th>Descrizione</th>
+              <th>Q.tà</th>
+              <th class="actions-cell"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(r => `
+              <tr data-line-id="${r.id}">
+                <td>${r.material_orders.job_ref}</td>
+                <td>${r.material_orders.job_year}</td>
+                <td>${r.material_orders.request_date || '-'}</td>
+                <td>${r.supplier_name || '-'}</td>
+                <td>${r.code || '-'}</td>
+                <td>${r.description || '-'}</td>
+                <td>${r.qty ?? 0}</td>
+                <td class="actions-cell">
+                  <button class="delete-row" data-id="${r.id}" title="Elimina riga">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      tableCont.innerHTML = html;
 
-    tableContainer.innerHTML = html;
+      // Aggiungi event listener ai bottoni elimina
+      document.querySelectorAll('.delete-row').forEach(btn => {
+        btn.addEventListener('click', () => deleteRow(btn.dataset.id));
+      });
+
+    } catch (err) {
+      console.error(err);
+      tableCont.textContent = 'Errore nel caricamento dati.';
+      Toast.error('Errore nel caricamento dati');
+    }
+  }
+
+  // Funzione eliminazione riga
+  async function deleteRow(lineId) {
+    const result = await Modal.confirm(
+      'Eliminare definitivamente questa riga?',
+      'Conferma eliminazione',
+      { danger: true, confirmText: 'Elimina', cancelText: 'Annulla' }
+    );
+    
+    if (!result) return;
+
+    try {
+      const { error } = await window.sbClient
+        .from('material_order_lines')
+        .delete()
+        .eq('id', lineId);
+
+      if (error) throw error;
+
+      // Rimuovi visivamente la riga
+      const row = document.querySelector(`tr[data-line-id="${lineId}"]`);
+      if (row) row.remove();
+
+      Toast.success('Riga eliminata');
+
+      // Se non ci sono più righe, mostra messaggio
+      const remainingRows = document.querySelectorAll('#tableContainer tbody tr');
+      if (!remainingRows.length) {
+        tableCont.textContent = 'Nessun ordine trovato.';
+      }
+
+    } catch (err) {
+      console.error('Errore eliminazione:', err);
+      Toast.error('Errore durante l\'eliminazione');
+    }
   }
 });

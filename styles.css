@@ -312,3 +312,262 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #fff; cursor: pointer; font-weight: 600;
 }
 .auth-msg { margin: .6rem 0 0; color: #ff8c8c; font-size: .9rem; text-align: center; }
+
+
+
+/* Pulsante Esci minimal */
+#btnLogout {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 1000;
+}
+
+#btnLogout:hover {
+  color: #7aa2ff;
+  border-color: #7aa2ff;
+  background: rgba(122,162,255,0.05);
+  transform: scale(1.03);
+}
+
+#btnLogout:active {
+  transform: scale(0.98);
+}
+
+
+
+/* === TOAST NOTIFICATIONS === */
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: #1a1a1d;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 280px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease;
+  pointer-events: auto;
+}
+
+.toast.success { border-left: 3px solid #7aa2ff; }
+.toast.error { border-left: 3px solid #ff6b6b; }
+.toast.warning { border-left: 3px solid #ffa726; }
+
+.toast-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  color: #eee;
+  font-size: 14px;
+  flex: 1;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast.removing {
+  animation: slideOut 0.3s ease forwards;
+}
+
+@keyframes slideOut {
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+/* === MODAL DIALOG === */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-overlay.closing {
+  animation: fadeOut 0.2s ease forwards;
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
+.modal-box {
+  background: #1a1a1d;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 400px;
+  max-width: 500px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: modalSlide 0.3s ease;
+}
+
+@keyframes modalSlide {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-title {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.modal-message {
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+  white-space: pre-line;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn.cancel {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #444;
+}
+
+.modal-btn.cancel:hover {
+  background: #2a2a2d;
+  border-color: #666;
+}
+
+.modal-btn.confirm {
+  background: #007aff;
+  color: #fff;
+}
+
+.modal-btn.confirm:hover {
+  background: #339dff;
+}
+
+.modal-btn.danger {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+.modal-btn.danger:hover {
+  background: #ff5252;
+}
+
+/* === FIX BOTTONE LOGOUT === */
+#btnLogout {
+  background: transparent !important;
+  color: #aaa !important;
+  border: 1px solid #333 !important;
+  border-radius: 6px !important;
+  padding: 0.4rem 0.9rem !important;
+  font-size: 0.9rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  position: fixed !important;
+  top: 12px !important;
+  right: 16px !important;
+  z-index: 1000 !important;
+}
+
+#btnLogout:hover {
+  color: #7aa2ff !important;
+  border-color: #7aa2ff !important;
+  background: rgba(122,162,255,0.05) !important;
+  transform: scale(1.03) !important;
+}
+
+#btnLogout:active {
+  transform: scale(0.98) !important;
+}
+
+
+
+#exportMail:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#exportMail:disabled:hover::after {
+  content: 'Salva prima su Supabase';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1d;
+  color: #ffa726;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  font-size: 13px;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  z-index: 1000;
+}
+
+
+

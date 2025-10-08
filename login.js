@@ -7,7 +7,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 window.sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+
+  // AGGIUNGI QUESTE 5 RIGHE ↓
+  const { data: { session } } = await window.sbClient.auth.getSession();
+  const loginBox = document.getElementById('loginBox');
+  if (session && loginBox) {
+    loginBox.style.display = 'none';
+  }
+
   const emailEl   = document.getElementById('loginEmail');
   const sendBtn   = document.getElementById('btnSendOtp');
   const codeEl    = document.getElementById('otpCode');
@@ -88,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (error) { console.error(error); setMsg('Codice non valido o scaduto.'); return; }
 
       setMsg('Accesso effettuato.', true);
+      updateUserStatus(); // ← AGGIUNGI QUESTA RIGA
 
       // (opzionale) nascondi box login e mostra UI principale
       const loginBox = document.getElementById('loginBox');
@@ -99,4 +108,25 @@ document.addEventListener('DOMContentLoaded', () => {
       verifyBtn.disabled = false;
     }
   });
+});
+
+
+
+// Mostra stato login (stile minimal)
+async function updateUserStatus() {
+  const statusEl = document.getElementById('userStatus');
+  if (!statusEl) return;
+  
+  const { data: { session } } = await window.sbClient.auth.getSession();
+  
+  if (session?.user?.email) {
+    const email = session.user.email.split('@')[0]; // solo nome utente
+    statusEl.innerHTML = `<span style="color: #7aa2ff;">●</span> ${email}`;
+  } else {
+    statusEl.innerHTML = `<span style="color: #666;">●</span> Non autenticato`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateUserStatus();
 });

@@ -14,46 +14,44 @@ const debounce = (fn, ms=150) => {
   let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
 };
 
+
+async function loadData() {
+  // Carica prodotti
+  const resProducts = await fetch(JSON_PRODUCTS_URL);
+  productMap = await resProducts.json();
+  
+  // Trasforma in array per ricerca
+  products = Object.entries(productMap).map(([code, description]) => ({
+    code,
+    description,
+    normDesc: normalize(description)
+  }));
+
+  // Carica fornitori
+  const resSuppliers = await fetch(JSON_SUPPLIERS_URL);
+  const suppliersRaw = await resSuppliers.json();
+  
+  // Gestisci sia array di stringhe che array di oggetti
+  suppliers = suppliersRaw.map((s, index) => 
+    typeof s === 'string' 
+      ? { id: String(index + 1), name: s }
+      : { id: s.id || String(index + 1), name: s.name }
+  );
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadData();
-  initUI();
+  try {
+    await loadData();
+  } catch (e) {
+    console.warn('loadData fallita:', e);
+  }
+  const linesEl = document.getElementById('lines');
+  if (linesEl && !linesEl.children.length) {
+    addLine(linesEl); // garantisce la prima riga
+  }
 });
 
-async function loadData(){
-  // carica products
-  try{
-    const res = await fetch(JSON_PRODUCTS_URL, {cache:'no-cache'});
-    productMap = await res.json(); // oggetto code -> description
-    products = Object.entries(productMap).map(([code, description])=>({
-      code,
-      description,
-      normDesc: normalize(description)
-    }));
-  }catch(e){
-    console.error('Errore caricamento data.json', e);
-    productMap = {};
-    products = [];
-  }
 
-  // carica suppliers
-  try{
-    const res = await fetch(JSON_SUPPLIERS_URL, {cache:'no-cache'});
-    const raw = await res.json();
-    if (Array.isArray(raw)) {
-      if (raw.length && typeof raw[0] === 'string') {
-        suppliers = raw.map(name => ({id:name, name}));
-      } else {
-        suppliers = raw.map(o => ({id: o.id ?? o.name ?? String(o), name: o.name ?? o.id ?? String(o)}));
-      }
-    } else {
-      // fallback se fosse oggetto {id:name}
-      suppliers = Object.entries(raw).map(([id,name])=>({id,name}));
-    }
-  }catch(e){
-    console.warn('fornitori.json non trovato o invalido, uso placeholder', e);
-    suppliers = [{id:'', name:'-- Seleziona --'}];
-  }
-}
 
 function initUI(){
   const linesEl = document.getElementById('lines');
@@ -298,4 +296,18 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.href = 'visualizza.html';
     });
   }
+});
+
+
+// Feedback quando si clicca su "Invia email" mentre è disabilitato
+document.addEventListener('DOMContentLoaded', () => {
+  const mailBtn = document.getElementById('exportMail');
+  if (!mailBtn) return;
+
+  mailBtn.addEventListener('click', (e) => {
+    if (mailBtn.disabled) {
+      e.preventDefault();
+      Toast.warning('Salva prima i dati su Supabase');
+    }
+  });
 });

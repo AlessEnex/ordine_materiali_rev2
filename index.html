@@ -7,9 +7,14 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-
 <header class="topbar">
-  <button id="openVisualizza" type="button" class="secondary">Apri visualizzazione</button>
+  <div id="userStatus" style="color: #666; font-size: 0.85rem;">
+    Verifica in corso...
+  </div>
+  
+  <button id="openVisualizza" type="button" class="secondary" style="margin-left: auto;">
+    Apri visualizzazione
+  </button>
 </header>
 
 
@@ -118,7 +123,9 @@
 
 <div class="actions">
   <button id="saveSupabase" type="button">Salva in Visualizzazione</button>
- <button id="exportMail" type="button">Invia email</button>
+ <button id="exportMail" type="button" disabled title="Salva prima su Supabase">
+  Invia email
+</button>
 </div>
 
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -127,7 +134,9 @@
 <script src="supabase-save.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
-
+<!-- Container per i toast -->
+<div id="toastContainer"></div>
+<script src="modal-toast.js" defer></script>
 
 </body>
 </html>

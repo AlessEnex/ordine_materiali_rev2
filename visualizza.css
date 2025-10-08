@@ -7,7 +7,7 @@ body {
 }
 
 .container {
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 2rem auto;
   padding: 1rem;
 }
@@ -16,8 +16,10 @@ h1 {
   text-align: center;
   font-weight: 500;
   color: #fff;
+  margin-bottom: 2rem;
 }
 
+/* === TABELLA === */
 .table-container {
   margin-top: 1.5rem;
   border-radius: 10px;
@@ -50,37 +52,49 @@ tr:hover {
 th {
   text-align: left;
   color: #aaa;
+  font-weight: 600;
 }
 
 td {
   color: #ddd;
 }
 
-
+/* === AZIONI RIGA === */
 .actions-cell {
   text-align: center;
-  width: 40px;
+  width: 50px;
 }
 
 .delete-row {
   background: none;
   border: none;
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0.5;
   transition: opacity 0.2s, transform 0.1s;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .delete-row:hover {
   opacity: 1;
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 .delete-row svg {
   pointer-events: none;
 }
 
+.delete-row svg path {
+  stroke: #666;
+  transition: stroke 0.2s;
+}
 
+.delete-row:hover svg path {
+  stroke: #ff6b6b;
+}
 
+/* === FILTRI === */
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -126,13 +140,171 @@ td {
   background: #339dff;
 }
 
-
-.auth-box{
-  background:#1a1a1d;border:1px solid #333;border-radius:10px;
-  padding:1rem;max-width:420px;margin:1rem auto;
+/* === AUTH BOX === */
+.auth-box {
+  background: #1a1a1d;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 1rem;
+  max-width: 420px;
+  margin: 1rem auto;
 }
-.auth-box h2{margin:0 0 .75rem;font-weight:600;color:#fff;}
-.auth-box label{display:flex;flex-direction:column;margin-bottom:.75rem;color:#ccc;font-size:.9rem;}
-.auth-box input{margin-top:.3rem;padding:.5rem .6rem;border:1px solid #333;border-radius:6px;background:#0d0d0f;color:#eee;}
-.auth-box button{width:100%;padding:.6rem 1rem;background:#007aff;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:600;}
-.auth-msg{margin:.6rem 0 0;color:#ff8c8c;font-size:.9rem;text-align:center;}
+
+.auth-box h2 {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.auth-box label {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.auth-box input {
+  margin-top: 0.3rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #0d0d0f;
+  color: #eee;
+}
+
+.auth-box button {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: #007aff;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.auth-msg {
+  margin: 0.6rem 0 0;
+  color: #ff8c8c;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* === BOTTONE LOGOUT === */
+#btnLogout {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 1000;
+}
+
+#btnLogout:hover {
+  color: #7aa2ff;
+  border-color: #7aa2ff;
+  background: rgba(122,162,255,0.05);
+  transform: scale(1.03);
+}
+
+#btnLogout:active {
+  transform: scale(0.98);
+}
+
+/* === TOAST (FIX POSIZIONE) === */
+#toastContainer {
+  position: fixed !important;
+  top: 60px !important;
+  right: 20px !important;
+  left: auto !important;
+  bottom: auto !important;
+  z-index: 10000 !important;
+}
+
+/* === FIX MODAL CENTRATO === */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  z-index: 9999 !important;
+  
+}
+
+.modal-box {
+  position: relative !important;
+  margin: auto !important;
+}
+
+
+/* === BOTTONI MODAL MINIMAL === */
+.modal-btn {
+  padding: 10px 24px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  letter-spacing: 0.02em !important;
+}
+
+.modal-btn.cancel {
+  background: #1a1a1d !important;
+  color: #aaa !important;
+  border: 1px solid #444 !important;
+}
+
+.modal-btn.cancel:hover {
+  background: #2a2a2d !important;
+  border-color: #666 !important;
+  color: #ddd !important;
+  transform: translateY(-1px) !important;
+}
+
+.modal-btn.confirm {
+  background: #007aff !important;
+  color: #fff !important;
+}
+
+.modal-btn.confirm:hover {
+  background: #339dff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3) !important;
+}
+
+.modal-btn.danger {
+  background: #ff6b6b !important;
+  color: #fff !important;
+}
+
+.modal-btn.danger:hover {
+  background: #ff5252 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3) !important;
+}
+
+.modal-btn:active {
+  transform: translateY(0) !important;
+}
+
+.modal-btn:focus {
+  outline: 2px solid #007aff !important;
+  outline-offset: 2px !important;
+}
+
+.modal-btn.danger:focus {
+  outline-color: #ff6b6b !important;
+}
