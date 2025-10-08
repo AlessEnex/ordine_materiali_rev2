@@ -17,15 +17,28 @@
   <main class="container">
       
 
-      <section id="loginBox" class="auth-box">
+    <section id="loginBox" class="auth-box">
       <h2>Accesso</h2>
+
       <label>
         <span>Email</span>
         <input id="loginEmail" type="email" placeholder="nome.cognome@azienda.it" autocomplete="username" />
       </label>
-      <button id="btnMagicLogin" type="button">Invia link di accesso</button>
+
+      <div style="display:flex; gap:.5rem; align-items:flex-end; margin:.75rem 0;">
+        <button id="btnSendOtp" type="button" style="flex:0 0 auto;">Invia codice</button>
+      </div>
+
+      <label>
+        <span>Codice (6 cifre)</span>
+        <input id="otpCode" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="------" autocomplete="one-time-code" />
+      </label>
+
+      <button id="btnVerifyOtp" type="button">Verifica e accedi</button>
+
       <p id="loginMsg" class="auth-msg"></p>
-      </section>
+    </section>
+
 
 
     <h1>Ordine materiali</h1>
@@ -112,6 +125,7 @@
 <script src="login.js" defer></script>
 <script src="app.js" defer></script>
 <script src="supabase-save.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
 
 
