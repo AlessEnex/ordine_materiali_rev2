@@ -130,3 +130,20 @@ async function updateUserStatus() {
 document.addEventListener('DOMContentLoaded', () => {
   updateUserStatus();
 });
+
+
+// Logout dall'index
+document.addEventListener('DOMContentLoaded', () => {
+  const btnLogout = document.getElementById('btnLogoutIndex');
+  if (!btnLogout) return;
+  
+  btnLogout.addEventListener('click', async () => {
+    await window.sbClient.auth.signOut();
+    location.reload();
+  });
+  
+  // Mostra bottone solo se loggato
+  window.sbClient.auth.getSession().then(({ data: { session } }) => {
+    if (session) btnLogout.style.display = 'inline-block';
+  });
+});
