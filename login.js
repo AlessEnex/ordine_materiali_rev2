@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Invia OTP (codice a 6 cifre via email)
       const { error: otpErr } = await window.sbClient.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: false } // non crea utenti nuovi
+        options: { shouldCreateUser: true } // non crea utenti nuovi
       });
 
       if (otpErr) { console.error(otpErr); setMsg('Errore nell’invio del codice.'); return; }
