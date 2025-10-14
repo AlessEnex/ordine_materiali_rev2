@@ -1,37 +1,36 @@
 // ===== Config & State =====
-const JSON_PRODUCTS_URL = 'data.json';      // mappa { "CODICE": "DESCRIZIONE", ... }
-const JSON_SUPPLIERS_URL = 'fornitori.json';// ["Danfoss","Castel",...] oppure [{id,name},...]
+const JSON_PRODUCTS_URL = 'data.json';
+const JSON_SUPPLIERS_URL = 'fornitori.json';
 
-let productMap = {};         // { code: description }
-let products = [];           // [{code, description, normDesc}]
-let suppliers = [];          // [{id, name}]
+let productMap = {};
+let products = [];
+let suppliers = [];
 
-// Utility normalizzazione testo per ricerca
+// Destinatari email di default
+const DEFAULT_RECIPIENTS = {
+  to: ['laura.valente@enextechnologies.com', 'chiara.guagliumi@enextechnologies.com'],
+  cc: ['acquisti@enex.it', 'romane.jacques@enextechnologies.com']
+};
+
 const normalize = s => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
 
-// Debounce
 const debounce = (fn, ms=150) => {
   let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
 };
 
-
 async function loadData() {
-  // Carica prodotti
   const resProducts = await fetch(JSON_PRODUCTS_URL);
   productMap = await resProducts.json();
   
-  // Trasforma in array per ricerca
   products = Object.entries(productMap).map(([code, description]) => ({
     code,
     description,
     normDesc: normalize(description)
   }));
 
-  // Carica fornitori
   const resSuppliers = await fetch(JSON_SUPPLIERS_URL);
   const suppliersRaw = await resSuppliers.json();
   
-  // Gestisci sia array di stringhe che array di oggetti
   suppliers = suppliersRaw.map((s, index) => 
     typeof s === 'string' 
       ? { id: String(index + 1), name: s }
@@ -47,15 +46,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   const linesEl = document.getElementById('lines');
   if (linesEl && !linesEl.children.length) {
-    addLine(linesEl); // garantisce la prima riga
+    addLine(linesEl);
   }
 });
 
-
-
 function initUI(){
   const linesEl = document.getElementById('lines');
-  addLine(linesEl); // prima riga vuota
+  addLine(linesEl);
 }
 
 // === RESTRIZIONE NUMERO COMMESSA ===
@@ -64,11 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!jobRefInput) return;
 
   jobRefInput.addEventListener('input', (e) => {
-    // Permetti solo cifre
     const clean = e.target.value.replace(/\D/g, '');
     e.target.value = clean;
 
-    // Se non è un numero valido, svuota
     const num = parseInt(clean, 10);
     if (isNaN(num) || num < 10 || num > 999) {
       e.target.setCustomValidity('Inserisci un numero compreso tra 10 e 999');
@@ -78,24 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   jobRefInput.addEventListener('keypress', (e) => {
-    // Blocca caratteri non numerici
     if (!/[0-9]/.test(e.key)) e.preventDefault();
   });
 });
 
-// Crea una nuova riga
 function addLine(container){
   const tpl = document.getElementById('lineTemplate');
   const node = tpl.content.firstElementChild.cloneNode(true);
 
-  // elementi
   const selSupplier = node.querySelector('.supplier');
   const qtyInput    = node.querySelector('.quantity');
   const codeInput   = node.querySelector('.codeInput');
   const descInput   = node.querySelector('.descInput');
 
-
-  // Stepper custom
   const btnUp   = node.querySelector('.stepper .step.up');
   const btnDown = node.querySelector('.stepper .step.down');
 
@@ -105,7 +95,6 @@ function addLine(container){
   const applyQty = (val) => {
     const v = Math.max(min, val);
     qtyInput.value = String(v);
-    // trigghiamo l'evento input per mantenere la logica "aggiungi nuova riga"
     qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
@@ -119,28 +108,22 @@ function addLine(container){
     applyQty(cur - step);
   });
 
-  // Evita numeri negativi anche da tastiera/wheel
   qtyInput.addEventListener('change', () => {
     const cur = parseInt(qtyInput.value || '0', 10) || 0;
     if (cur < min) applyQty(min);
   });
 
-
-  // popola fornitori
   selSupplier.innerHTML = '';
   selSupplier.append(new Option('-- Seleziona --',''));
   suppliers.forEach(s => selSupplier.append(new Option(s.name, s.id)));
 
-  // Autocomplete handlers
   setupAutocomplete(codeInput, 'code');
   setupAutocomplete(descInput, 'desc');
 
-  // qty: blocco valori < 0 e auto-add riga
   qtyInput.addEventListener('input', () => {
     const v = parseInt(qtyInput.value || '0', 10);
     if (isNaN(v) || v < 0) qtyInput.value = 0;
 
-    // Se questa riga è l'ultima visibile e qty > 0, aggiungi una nuova riga
     const isLast = container.lastElementChild === node;
     if (isLast && parseInt(qtyInput.value,10) > 0) {
       addLine(container);
@@ -150,16 +133,13 @@ function addLine(container){
   container.appendChild(node);
 }
 
-// Autocomplete per code/desc
 function setupAutocomplete(input, mode){
-  // mode: 'code' o 'desc'
   const otherInput = mode === 'code'
     ? input.closest('.line').querySelector('.descInput')
     : input.closest('.line').querySelector('.codeInput');
 
   const list = input.parentElement.querySelector('.suggestions');
 
-  // ricerca filtrata
   const runSearch = debounce(() => {
     const q = normalize(input.value);
     if (!q) { hideList(list); return; }
@@ -171,7 +151,6 @@ function setupAutocomplete(input, mode){
       matches = products.filter(p => p.normDesc.includes(q)).slice(0, 50);
     }
     renderSuggestions(list, matches, (picked) => {
-      // on select: riempi entrambi i campi
       input.value = mode === 'code' ? picked.code : picked.description;
       otherInput.value = mode === 'code' ? picked.description : picked.code;
       hideList(list);
@@ -181,9 +160,8 @@ function setupAutocomplete(input, mode){
 
   input.addEventListener('input', runSearch);
   input.addEventListener('focus', runSearch);
-  input.addEventListener('blur', () => setTimeout(()=>hideList(list), 120)); // lascia tempo al click
+  input.addEventListener('blur', () => setTimeout(()=>hideList(list), 120));
 
-  // tastiera
   input.addEventListener('keydown', (e) => {
     const items = list.querySelectorAll('li');
     if (list.style.display !== 'block' || !items.length) return;
@@ -218,19 +196,17 @@ function renderSuggestions(listEl, arr, onPick, mode){
       ? `<strong>${escapeHtml(p.code)}</strong> — ${escapeHtml(p.description)}`
       : `<strong>${escapeHtml(p.description)}</strong> — ${escapeHtml(p.code)}`;
 
-    // Usa mousedown per chiudere PRIMA del blur/focus management
     li.addEventListener('mousedown', (e) => {
-      e.preventDefault();           // evita che l'input perda focus prima del pick
+      e.preventDefault();
       e.stopPropagation();
-      onPick(p);                    // compila i campi
-      hideList(listEl);             // chiudi subito il menu
+      onPick(p);
+      hideList(listEl);
     });
 
     listEl.appendChild(li);
   });
   listEl.style.display = 'block';
 }
-
 
 function hideList(listEl){
   listEl.style.display = 'none';
@@ -248,9 +224,127 @@ function escapeHtml(s){
   }[c]));
 }
 
+// ===== GESTIONE DESTINATARI EMAIL =====
+function createEmailRecipientsUI() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '10000';
+  
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+      <h3 class="modal-title">Destinatari email</h3>
+      
+      <div style="margin: 1.5rem 0;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+          Destinatari principali (A:)
+        </label>
+        <div id="toRecipients" class="recipients-list"></div>
+        <input type="email" id="newToEmail" placeholder="Aggiungi email destinatario..." 
+               style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+      </div>
+      
+      <div style="margin: 1.5rem 0;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+          Copia conoscenza (CC:)
+        </label>
+        <div id="ccRecipients" class="recipients-list"></div>
+        <input type="email" id="newCcEmail" placeholder="Aggiungi email in CC..." 
+               style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+      </div>
+      
+      <div class="modal-buttons">
+        <button class="modal-btn cancel" tabindex="1">Annulla</button>
+        <button class="modal-btn confirm" tabindex="2">Invia email</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Popola le liste
+  const toContainer = modal.querySelector('#toRecipients');
+  const ccContainer = modal.querySelector('#ccRecipients');
+  
+  const toEmails = [...DEFAULT_RECIPIENTS.to];
+  const ccEmails = [...DEFAULT_RECIPIENTS.cc];
+  
+  const renderRecipient = (email, container, array) => {
+    const tag = document.createElement('div');
+    tag.className = 'email-tag';
+    tag.innerHTML = `
+      <span>${email}</span>
+      <button type="button" class="remove-email" title="Rimuovi">×</button>
+    `;
+    
+    tag.querySelector('.remove-email').addEventListener('click', () => {
+      const idx = array.indexOf(email);
+      if (idx > -1) array.splice(idx, 1);
+      tag.remove();
+    });
+    
+    container.appendChild(tag);
+  };
+  
+  const renderAll = () => {
+    toContainer.innerHTML = '';
+    ccContainer.innerHTML = '';
+    toEmails.forEach(e => renderRecipient(e, toContainer, toEmails));
+    ccEmails.forEach(e => renderRecipient(e, ccContainer, ccEmails));
+  };
+  
+  renderAll();
+  
+  // Aggiungi destinatari
+  const newToInput = modal.querySelector('#newToEmail');
+  const newCcInput = modal.querySelector('#newCcEmail');
+  
+  const addEmail = (input, array, container) => {
+    const email = input.value.trim().toLowerCase();
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!array.includes(email)) {
+        array.push(email);
+        renderRecipient(email, container, array);
+      }
+      input.value = '';
+    }
+  };
+  
+  newToInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addEmail(newToInput, toEmails, toContainer);
+    }
+  });
+  
+  newCcInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addEmail(newCcInput, ccEmails, ccContainer);
+    }
+  });
+  
+  // Gestione bottoni
+  const [cancelBtn, confirmBtn] = modal.querySelectorAll('.modal-btn');
+  
+  return new Promise((resolve) => {
+    const cleanup = (result) => {
+      modal.style.animation = 'fadeOut 0.2s ease forwards';
+      setTimeout(() => {
+        modal.remove();
+        resolve(result);
+      }, 200);
+    };
+    
+    cancelBtn.onclick = () => cleanup(null);
+    confirmBtn.onclick = () => cleanup({ to: toEmails, cc: ccEmails });
+    
+    modal.onclick = (e) => {
+      if (e.target === modal) cleanup(null);
+    };
+  });
+}
 
-
-// ===== EXPORT TO MAIL =====
+// ===== EXPORT TO MAIL (MODIFICATO) =====
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('exportMail');
   if (btn) {
@@ -258,7 +352,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function exportToMail() {
+async function exportToMail() {
+  // Apri modale per scegliere destinatari
+  const recipients = await createEmailRecipientsUI();
+  
+  if (!recipients) {
+    return; // Utente ha annullato
+  }
+  
   const jobRef = document.getElementById('jobRef').value.trim();
   const jobName = document.getElementById('jobName').value.trim();
   const reqDate = document.getElementById('requestDate').value;
@@ -270,24 +371,31 @@ function exportToMail() {
   body.push("");
   body.push("Materiali:");
 
-  // raccogli tutte le righe con qty > 0
   document.querySelectorAll('#lines .line').forEach(line => {
     const qty = parseInt(line.querySelector('.quantity')?.value || "0", 10);
     if (qty > 0) {
       const supplierSelect = line.querySelector('.supplier');
-      const supplierName = supplierSelect?.options[supplierSelect.selectedIndex]?.text || "";
+      const supplierName = supplierSelect?.options[supplierSelect.selectedIndex]?.text || "-";
       const code = line.querySelector('.codeInput')?.value || "";
       const desc = line.querySelector('.descInput')?.value || "";
       body.push(`- [${supplierName}] ${qty} × ${code} — ${desc}`);
     }
   });
 
-  const subject = encodeURIComponent(`ORDINI MATERIALI – ${jobRef || ""}`);
+  const subject = encodeURIComponent(`ORDINI MATERIALI — ${jobRef || ""}`);
   const mailBody = encodeURIComponent(body.join("\n"));
-
-  window.location.href = `mailto:acquisti@enex.it?subject=${subject}&body=${mailBody}`;
+  
+  // Costruisci URL mailto con destinatari e CC
+  const toList = recipients.to.join(',');
+  const ccList = recipients.cc.join(',');
+  
+  let mailUrl = `mailto:${toList}?subject=${subject}&body=${mailBody}`;
+  if (ccList) {
+    mailUrl += `&cc=${ccList}`;
+  }
+  
+  window.location.href = mailUrl;
 }
-
 
 // === PULSANTE APRI VISUALIZZA ===
 document.addEventListener('DOMContentLoaded', () => {
@@ -298,7 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-
 
 // Feedback quando si clicca su "Invia email" mentre è disabilitato
 document.addEventListener('DOMContentLoaded', () => {

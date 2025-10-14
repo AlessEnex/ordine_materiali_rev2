@@ -570,4 +570,62 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 
+/* Stili per la gestione destinatari email */
+.recipients-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0.5rem;
+  border: 0px solid #ddd;
+  border-radius: 4px;
+  background: transparent;
+}
 
+.email-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: #4a90e2;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  animation: slideIn 0.2s ease;
+}
+
+.email-tag span {
+  user-select: none;
+}
+
+.remove-email {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.remove-email:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
