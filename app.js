@@ -274,10 +274,11 @@ function exportToMail() {
   document.querySelectorAll('#lines .line').forEach(line => {
     const qty = parseInt(line.querySelector('.quantity')?.value || "0", 10);
     if (qty > 0) {
-      const supplier = line.querySelector('.supplier')?.value || "";
+      const supplierSelect = line.querySelector('.supplier');
+      const supplierName = supplierSelect?.options[supplierSelect.selectedIndex]?.text || "";
       const code = line.querySelector('.codeInput')?.value || "";
       const desc = line.querySelector('.descInput')?.value || "";
-      body.push(`- [${supplier}] ${qty} × ${code} – ${desc}`);
+      body.push(`- [${supplierName}] ${qty} × ${code} — ${desc}`);
     }
   });
 
